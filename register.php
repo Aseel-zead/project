@@ -1,28 +1,52 @@
 <?php
-include('DataBase/connect.php');
 $errors = [];
 $name = '';
 $email = '';
 $password = '';
 $passwordConf = '';
 if (isset($_POST['regist'])) {
-	$name = $_POST['name'];
-	$email = $_POST['email'];
-	$password = $_POST['password'];
-	$passwordConf = $_POST['conpassword'];
+	$name = htmlspecialchars($_POST['name']);
+	$email = htmlspecialchars($_POST['email']);
+	$password = htmlspecialchars($_POST['password']);
+	$passwordConf = htmlspecialchars($_POST['conpassword']);
+	# validate name 
 	if (strlen($name) < 3) {
-		$errors[] = 'Enter First Name Correctly   . ';
+		$errors[] = 'Enter Your Name Correctly   . ';
 	}
-	if (strlen($password) < 8) {
-		$errors[] = 'Password Must be at least 8 characters  . ';
-	}else if($password !== $passwordConf) {
-		$errors [] = 'Passewedc ' ; 
-	}
-	
-	if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+	# validate email 
+	if (validEmail($email)) {
+		$errors[] = 'This email is trying to log in in is already registered  ';
+	} else if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 		$errors[] = 'Enter email correctly  as example@example.com . ';
 	}
-
+	# validate password 
+	if (strlen($password) <= 8) {
+		$errors[] = 'Password Must be at least 8 characters  . ';
+	} else if ($password !== $passwordConf) {
+		$errors[] = 'The password must be the same.';
+	}
+	# Insert in database 
+	include('Users.php');
+	if (count($errors) == 0) {
+        $hashPassword = md5($password);
+        $user = new User();
+        $user->register($name, $email, $hashPassword);
+    }
+}
+// To validate if email in database or not ... 
+function validEmail($email)
+{
+	include('DataBase/connect.php');
+	$query = "SELECT * FROM users WHERE email = '$email'";
+	$result = mysqli_query($con, $query);
+	if (!$result) {
+		die('Error Executing query  !  ' . mysqli_error($con));
+	}
+	if (mysqli_num_rows($result) > 0) {
+		return true; // find in database must be -> login
+	} else {
+		return false; 
+	}
 }
 ?>
 
@@ -39,7 +63,7 @@ if (isset($_POST['regist'])) {
 </head>
 
 <body class="bg-body-secondary">
-<?php include('headFooter/header.php'); ?>
+	<?php include('include/header.php'); ?>
 	<section>
 		<div class="container  mt-4 pt-3">
 			<div class="row">
@@ -54,17 +78,19 @@ if (isset($_POST['regist'])) {
 								<br> Sing-up
 							</h4>
 							<?php if (count($errors) > 0) { ?>
-								<ul class="px-3 text-danger">
-									<?php foreach ($errors as $error) { ?>
-										<li> <?php echo $error;  ?></li>
-									<?php  } ?>
-								</ul>
+								<div id="login-alert" class="alert alert-danger col-sm-12">
+									<ul>
+										<?php foreach ($errors as $error) { ?>
+											<li><?php echo $error; ?></li>
+										<?php  } ?>
+									</ul>
+								</div>
 							<?php } ?>
 							<form action="#" method="post" class="container-sm" enctype="multipart/form-data">
-								<input type="text" name="name" id="name" class="form-control my-4 py-2"  placeholder="Name" value="<?php echo $name  ; ?>"/>
-								<input type="text" name="email" id="email" class="form-control my-4 py-2" placeholder="Email"  value="<?php echo $email  ; ?>"/>
-								<input type="password" name="password" id="password" class="form-control my-4 py-2" placeholder="Password" value="<?php echo $password  ; ?>"/>
-								<input type="password" name="conpassword" id="conpassword" class="form-control my-4 py-2" placeholder="Confirm Password" value="<?php echo $passwordConf  ; ?>" />
+								<input type="text" name="name" id="name" class="form-control my-4 py-2" placeholder="Name" value="<?php echo $name; ?>" />
+								<input type="text" name="email" id="email" class="form-control my-4 py-2" placeholder="Email" value="<?php echo $email; ?>" />
+								<input type="password" name="password" id="password" class="form-control my-4 py-2" placeholder="Password" value="<?php echo $password; ?>" />
+								<input type="password" name="conpassword" id="conpassword" class="form-control my-4 py-2" placeholder="Confirm Password" value="<?php echo $passwordConf; ?>" />
 								<div class="text-center mt-3">
 									<button class="btn btn-outline-primary" type="submit" id="regist" name="regist">Sing-up</button>
 									<a href="Login.php" class="nav-link  my-2">or Login</a>
@@ -76,7 +102,7 @@ if (isset($_POST['regist'])) {
 			</div>
 		</div>
 	</section>
-    <?php include('headFooter/footer.php'); ?>
+	<?php include('include/footer.php'); ?>
 </body>
 
 </html>
